@@ -8,6 +8,20 @@ type QuizProps = {
   explanation?: string;
 };
 
+// Fallback verdicts when the model forgot to write a reaction line — dry,
+// never slapstick. One is drawn per quiz, so retakes don't feel scripted.
+const RIGHT_VERDICTS = [
+  "Nailed it. The interface is quietly impressed.",
+  "Correct — you may now explain generative UI at parties.",
+  "Bullseye. No confetti: we're on a free tier.",
+];
+
+const WRONG_VERDICTS = [
+  "Bold choice. Wrong, but bold.",
+  "Tempting — but the green one had the receipts.",
+  "The trap worked. We're a little proud of it.",
+];
+
 /**
  * A one-shot pop quiz: pick an option, get an instant verdict — the right
  * answer glows, a wrong pick shakes, and the model's witty reaction line
@@ -16,9 +30,13 @@ type QuizProps = {
  */
 export function Quiz({ question, options, explanation }: QuizProps) {
   const [picked, setPicked] = useState<number | null>(null);
+  const [verdictDraw] = useState(() => Math.floor(Math.random() * 3));
   const answered = picked !== null;
   const nailedIt = answered && options[picked]?.correct === true;
   const reaction = answered ? options[picked]?.reaction : undefined;
+  const verdict =
+    reaction ??
+    (nailedIt ? RIGHT_VERDICTS[verdictDraw] : WRONG_VERDICTS[verdictDraw]);
 
   return (
     <div className="glass enter p-5 sm:p-6">
@@ -61,10 +79,7 @@ export function Quiz({ question, options, explanation }: QuizProps) {
 
       {answered && (
         <div className="enter mt-4 space-y-1.5 text-sm" aria-live="polite">
-          <p className="font-medium">
-            {nailedIt ? "Nailed it." : "Not quite — the real one glows green."}
-          </p>
-          {reaction && <p className="leading-relaxed text-muted">{reaction}</p>}
+          <p className="font-medium">{verdict}</p>
           {explanation && (
             <p className="leading-relaxed text-muted">{explanation}</p>
           )}

@@ -93,25 +93,40 @@ export function Chat() {
     }
   }, [messages, heroPhase]);
 
+  const [clock, setClock] = useState(0);
+  const spentBudget =
+    recentInteractions(interactions).length >= RATE_MAX_INTERACTIONS;
+  const oldestInteraction = recentInteractions(interactions)[0];
+  const refillSeconds =
+    spentBudget && clock > 0
+      ? Math.max(1, Math.ceil((oldestInteraction + RATE_WINDOW_MS - clock) / 1000))
+      : 0;
+
   // Hydrate the interaction budget after mount (localStorage is client-only)
-  // and re-prune each half-minute so the ring refills as the window rolls.
+  // and re-prune so the ring refills as the window rolls — every second
+  // while the budget is spent (a live countdown), lazily otherwise. `clock`
+  // is the render-safe "now" the countdown reads.
   useEffect(() => {
-    const frame = requestAnimationFrame(() =>
-      setInteractions(readStoredInteractions()),
-    );
-    const timer = setInterval(
-      () => setInteractions((current) => recentInteractions(current)),
-      30_000,
-    );
+    const sync = () => {
+      setClock(Date.now());
+      setInteractions((current) => recentInteractions(current));
+    };
+    const frame = requestAnimationFrame(() => {
+      setInteractions(readStoredInteractions());
+      setClock(Date.now());
+    });
+    const timer = setInterval(sync, spentBudget ? 1_000 : 30_000);
     return () => {
       cancelAnimationFrame(frame);
       clearInterval(timer);
     };
-  }, []);
+  }, [spentBudget]);
 
   function submit(text: string, options?: { hidden?: boolean }) {
     const trimmed = text.trim();
     if (!trimmed || status === "submitted" || status === "streaming") return;
+    // Budget spent: the composer shows the refill countdown; nothing sends.
+    if (spentBudget) return;
     if (heroPhase === "idle") setHeroPhase("leaving");
     setAsked((previous) => [...previous, trimmed]);
     setInteractions((previous) => {
@@ -227,19 +242,31 @@ export function Chat() {
         }}
         className="composer-veil fixed inset-x-0 bottom-0 z-10 pb-[max(1rem,env(safe-area-inset-bottom))] pt-6"
       >
-        {conversationStarted && railSuggestions.length > 0 && (
-          <div className="chip-rail mx-auto mb-2 flex w-full max-w-3xl gap-3 px-4 sm:px-6">
-            {railSuggestions.map((suggestion) => (
-              <button
-                key={suggestion}
-                type="button"
-                onClick={() => submit(suggestion)}
-                className="glass enter shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs text-muted transition-colors hover:bg-ink/[0.08] hover:text-foreground active:scale-[0.97]"
-              >
-                {suggestion}
-              </button>
-            ))}
-          </div>
+        {spentBudget ? (
+          <p className="mx-auto mb-2.5 w-full max-w-3xl px-4 text-xs text-muted sm:px-6">
+            Interaction budget spent — the ring refills in{" "}
+            <span className="font-mono tabular-nums text-foreground/80">
+              {Math.floor(refillSeconds / 60)}:
+              {String(refillSeconds % 60).padStart(2, "0")}
+            </span>
+            . Nothing personal: free tier.
+          </p>
+        ) : (
+          conversationStarted &&
+          railSuggestions.length > 0 && (
+            <div className="chip-rail mx-auto mb-2 flex w-full max-w-3xl gap-3 px-4 sm:px-6">
+              {railSuggestions.map((suggestion) => (
+                <button
+                  key={suggestion}
+                  type="button"
+                  onClick={() => submit(suggestion)}
+                  className="glass enter shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs text-muted transition-colors hover:bg-ink/[0.08] hover:text-foreground active:scale-[0.97]"
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+          )
         )}
         <div className="mx-auto w-full max-w-3xl px-4 sm:px-6">
           <div className="relative min-w-0">
@@ -255,7 +282,12 @@ export function Chat() {
               <button
                 type="submit"
                 aria-label="Send"
-                disabled={!input.trim() || status === "submitted" || status === "streaming"}
+                disabled={
+                  !input.trim() ||
+                  spentBudget ||
+                  status === "submitted" ||
+                  status === "streaming"
+                }
                 className="flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-violet-500/90 to-cyan-400/90 text-white shadow-[0_0_18px_-6px_rgba(103,232,249,0.8)] transition-all hover:scale-105 active:scale-95 disabled:opacity-35 disabled:shadow-none disabled:hover:scale-100"
               >
                 <svg

@@ -75,9 +75,10 @@ export function ContactCard() {
             <button
               type="button"
               onClick={copyLink}
-              className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition-all active:scale-95 ${
+              aria-pressed={copied}
+              className={`copy-chip rounded-full border px-3.5 py-1.5 text-xs font-medium transition-all active:scale-95 ${
                 copied
-                  ? "border-emerald-300/50 text-emerald-300"
+                  ? "border-transparent"
                   : "border-ink/[0.12] text-muted hover:border-ink/[0.25] hover:text-foreground"
               }`}
             >

@@ -65,18 +65,18 @@ export function RateLimitNotice({ seconds }: { seconds: number }) {
           aria-hidden
           className={`inline-block h-2 w-2 shrink-0 rounded-full ${
             ready
-              ? "bg-emerald-300/90 shadow-[0_0_10px_rgba(110,231,183,0.7)]"
-              : "badge-dot-pulse bg-amber-300/90 shadow-[0_0_10px_rgba(252,211,77,0.7)]"
+              ? "bg-[var(--success)] shadow-[0_0_10px_color-mix(in_srgb,var(--success)_60%,transparent)]"
+              : "badge-dot-pulse bg-[var(--ring-warn)] shadow-[0_0_10px_color-mix(in_srgb,var(--ring-warn)_60%,transparent)]"
           }`}
         />
         {ready
-          ? "The free tier caught its breath."
-          : "The free tier is catching its breath — it happens on the free plan."}
+          ? "Break's over — the free tier is back on shift."
+          : "The free tier is unionized: it takes its breaks seriously."}
       </p>
       <div className="flex items-center gap-3">
         {!ready && (
           <span
-            className="font-mono text-sm tabular-nums text-amber-200"
+            className="font-mono text-sm tabular-nums text-[var(--ring-warn)]"
             aria-live="polite"
             aria-label={`Retry available in ${remaining} seconds`}
           >
@@ -90,7 +90,7 @@ export function RateLimitNotice({ seconds }: { seconds: number }) {
             onClick={() => actions.regenerate()}
             className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition-all active:scale-95 ${
               ready
-                ? "border-emerald-300/50 text-emerald-200 hover:bg-emerald-400/10"
+                ? "border-[color-mix(in_srgb,var(--success)_50%,transparent)] text-[var(--success)] hover:bg-[color-mix(in_srgb,var(--success)_12%,transparent)]"
                 : "border-ink/[0.12] text-muted opacity-50"
             }`}
           >

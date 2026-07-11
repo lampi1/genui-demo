@@ -31,6 +31,7 @@
   --ring-ok: #67e8f9;
   --ring-warn: #fbbf24;
   --ring-stop: #fb7185;
+  --success: #6ee7b7;
   --radius-card: 1.25rem;
   color-scheme: dark;
 }
@@ -56,6 +57,7 @@
   --ring-ok: #7c3aed;
   --ring-warn: #b45309;
   --ring-stop: #be123c;
+  --success: #047857;
   /* The neumorphic light source: soft light from top-left, shade to
      bottom-right. Standard ratio: shadow distance : blur = 1 : 2. */
   --neu-light: rgba(255, 255, 255, 0.72);
@@ -701,6 +703,21 @@ body {
   scroll-snap-align: center;
 }
 
+/* Stats land with a spring pop and one breath of glow */
+.stat-land {
+  display: inline-block;
+  animation: stat-land 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes stat-land {
+  0% { transform: scale(1); }
+  45% {
+    transform: scale(1.14);
+    filter: drop-shadow(0 0 14px color-mix(in srgb, var(--cyan) 55%, transparent));
+  }
+  100% { transform: scale(1); filter: none; }
+}
+
 /* Quiz: a wrong pick shakes its head */
 .quiz-shake {
   animation: quiz-shake 0.4s ease;
@@ -712,14 +729,14 @@ body {
   75% { translate: -2px 0; }
 }
 
-/* Code-block copy chip: success tone owned entirely by the theme — bright
-   emerald on glass; on neu a deep readable green, sunk INTO the surface. */
+/* Copy chips (code block, contact card): success tone owned by the theme —
+   bright emerald on glass; on neu a deep readable green, sunk INTO the
+   surface. */
 .copy-chip[aria-pressed="true"] {
-  color: #6ee7b7;
+  color: var(--success);
 }
 
 [data-theme="neu"] .copy-chip[aria-pressed="true"] {
-  color: #047857;
   box-shadow:
     inset 2px 2px 5px var(--neu-dark),
     inset -2px -2px 5px var(--neu-light);
