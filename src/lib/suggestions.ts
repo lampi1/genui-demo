@@ -35,12 +35,13 @@ export const SUGGESTIONS: readonly Suggestion[] = [
   },
   {
     prompt: "Surprise me with a layout you've never drawn",
-    showcase: "render_ui mixing 3+ block kinds — your freest composition.",
+    showcase:
+      "render_ui mixing 3+ block kinds this conversation has NOT seen yet — your freest composition.",
   },
   {
-    prompt: "Let the three approaches fight it out on a chart",
+    prompt: "Let the three approaches fight it out in numbers",
     showcase:
-      "render_ui chart (+ progress if it helps) from the 'Approach scorecard' in the knowledge — never invented data.",
+      "render_ui stats row (count-up) + chart + progress meters, all from the 'Approach scorecard' in the knowledge — the same three contenders told three ways, never invented data.",
   },
   {
     prompt: "Put the three approaches face to face",
@@ -52,11 +53,13 @@ export const SUGGESTIONS: readonly Suggestion[] = [
   },
   {
     prompt: "Nerd out on the emerging standards",
-    showcase: "render_ui accordion + a links block of official resources.",
+    showcase:
+      "render_ui accordion + chips of the ecosystem names + a links block of official resources.",
   },
   {
     prompt: "Serve me the trade-offs in tabs",
-    showcase: "render_ui tabs.",
+    showcase:
+      "render_ui tabs (+ a compact table when the trade-offs want rows and columns).",
   },
   {
     prompt: "Pop the hood — show me the code",
