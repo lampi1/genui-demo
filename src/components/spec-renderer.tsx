@@ -9,6 +9,7 @@ import { Comparison } from "./genui/comparison";
 import { GenChart } from "./genui/gen-chart";
 import { GenForm } from "./genui/gen-form";
 import { Callout, Chips, DataTable, Links, Progress } from "./genui/extras";
+import { Flow } from "./genui/flow";
 import { Quiz } from "./genui/quiz";
 import { Stats } from "./genui/stats";
 import { Tabs } from "./genui/tabs";
@@ -46,6 +47,7 @@ const SLIDE_TYPES = new Set<UiNode["type"]>([
   "code",
   "stats",
   "quiz",
+  "flow",
 ]);
 
 /**
@@ -181,6 +183,9 @@ function SpecNode({ node, index }: { node: UiNode; index: number }) {
           explanation={node.explanation}
         />
       );
+
+    case "flow":
+      return <Flow title={node.title} steps={node.steps} />;
 
     case "card":
       return (

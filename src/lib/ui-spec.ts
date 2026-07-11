@@ -28,6 +28,7 @@ export const ALLOWED_COMPONENTS = [
   "table",
   "links",
   "quiz",
+  "flow",
 ] as const;
 
 /** Domains a model-emitted link may point to — anything else is dropped. */
@@ -279,6 +280,21 @@ const quizNode = z.object({
   explanation: z.string().optional().describe("Shown after the visitor answers"),
 });
 
+const flowNode = z.object({
+  type: z.literal("flow"),
+  title: z.string().optional(),
+  steps: z
+    .array(
+      z.object({
+        label: z.string().min(1),
+        detail: z.string().optional().describe("One short line under the step"),
+      }),
+    )
+    .min(2)
+    .max(6)
+    .describe("A left-to-right flow diagram: each step becomes a box, arrows join them."),
+});
+
 const leafNode = z.discriminatedUnion("type", [
   textNode,
   listNode,
@@ -297,6 +313,7 @@ const leafNode = z.discriminatedUnion("type", [
   tableNode,
   linksNode,
   quizNode,
+  flowNode,
 ]);
 
 // --- Containers, unrolled to a bounded depth ------------------------------
@@ -391,6 +408,7 @@ export function repairUiSpecValue(value: unknown): unknown {
     else if (Array.isArray(node.buttons)) node.type = "actions";
     else if (Array.isArray(node.rows)) node.type = "table";
     else if (Array.isArray(node.data)) node.type = "chart";
+    else if (Array.isArray(node.steps)) node.type = "flow";
     else if (Array.isArray(node.items)) node.type = "list";
     else if (Array.isArray(node.columns)) node.type = "comparison";
     else if (Array.isArray(node.children)) node.type = "stack";
@@ -413,6 +431,7 @@ export function repairUiSpecValue(value: unknown): unknown {
     table: "rows",
     links: "items",
     quiz: "options",
+    flow: "steps",
   };
   const aliasTarget = COLLECTION_KEY[node.type as string];
   if (aliasTarget && !Array.isArray(node[aliasTarget])) {
@@ -428,6 +447,7 @@ export function repairUiSpecValue(value: unknown): unknown {
       "rows",
       "links",
       "options",
+      "steps",
     ]
       .filter((key) => key !== aliasTarget)
       .find((key) => Array.isArray(node[key]));
@@ -519,6 +539,30 @@ export function repairUiSpecValue(value: unknown): unknown {
           : null;
       })
       .filter((option) => option !== null);
+  }
+
+  // Flow steps: strings become labels; title/text aliases become labels too.
+  if (node.type === "flow" && Array.isArray(node.steps)) {
+    node.steps = node.steps
+      .map((step) => {
+        if (typeof step === "string") return step.trim() ? { label: step } : null;
+        if (typeof step !== "object" || step === null) return null;
+        const entry = { ...(step as Record<string, unknown>) };
+        if (typeof entry.label !== "string") {
+          const alias = [entry.title, entry.text, entry.content].find(
+            (candidate) => typeof candidate === "string" && candidate.trim() !== "",
+          );
+          if (alias) entry.label = alias;
+        }
+        if (typeof entry.detail !== "string" && typeof entry.description === "string") {
+          entry.detail = entry.description;
+          delete entry.description;
+        }
+        return typeof entry.label === "string" && entry.label.trim() !== ""
+          ? entry
+          : null;
+      })
+      .filter((step) => step !== null);
   }
 
   if (node.type === "tabs" && Array.isArray(node.tabs)) {
@@ -687,6 +731,7 @@ export function repairUiSpecValue(value: unknown): unknown {
     comparison: "columns",
     form: "fields",
     quiz: "options",
+    flow: "steps",
   };
   const collectionKey = collectionOf[node.type as string];
   if (collectionKey) {
@@ -702,11 +747,13 @@ export function repairUiSpecValue(value: unknown): unknown {
     // lone entry into a text line rather than fail.
     if (
       collection.length === 1 &&
-      ["accordion", "tabs", "timeline"].includes(node.type as string)
+      ["accordion", "tabs", "timeline", "flow"].includes(node.type as string)
     ) {
       const only = collection[0] as Record<string, unknown>;
       const label = [only?.title, only?.label].find((v) => typeof v === "string");
-      const body = [only?.content, only?.description].find((v) => typeof v === "string");
+      const body = [only?.content, only?.description, only?.detail].find(
+        (v) => typeof v === "string",
+      );
       const merged = [label, body].filter(Boolean).join(" — ");
       if (merged) return { type: "text", content: merged };
     }
@@ -726,6 +773,7 @@ export function repairUiSpecValue(value: unknown): unknown {
       table: 8,
       links: 5,
       quiz: 4,
+      flow: 6,
     };
     const max = maxOf[node.type as string];
     if (collection.length > max) node[collectionKey] = collection.slice(0, max);

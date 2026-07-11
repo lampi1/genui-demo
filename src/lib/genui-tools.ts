@@ -91,6 +91,7 @@ const looseNode = z.looseObject({
   question: z.string().optional().describe("quiz only"),
   options: z.array(z.unknown()).optional().describe("quiz only: {label, correct?, reaction?}"),
   explanation: z.string().optional().describe("quiz only: shown after answering"),
+  steps: z.array(z.unknown()).optional().describe("flow only: {label, detail?}"),
   columns: z.array(z.unknown()).optional(),
   fields: z.array(z.unknown()).optional(),
   children: z.array(z.unknown()).optional().describe("Only card and stack nest children"),

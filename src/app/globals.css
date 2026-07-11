@@ -703,6 +703,15 @@ body {
   scroll-snap-align: center;
 }
 
+/* Flow diagram nodes: raised boxes in neu, quiet outlines in glass */
+[data-theme="neu"] .flow-node {
+  border-color: transparent;
+  background: var(--surface);
+  box-shadow:
+    3px 3px 6px var(--neu-dark),
+    -3px -3px 6px var(--neu-light);
+}
+
 /* Stats land with a spring pop and one breath of glow */
 .stat-land {
   display: inline-block;

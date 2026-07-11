@@ -52,6 +52,11 @@ export const SUGGESTIONS: readonly Suggestion[] = [
     showcase: "show_timeline with rich expandable descriptions.",
   },
   {
+    prompt: "Draw me the flow of one generated answer",
+    showcase:
+      "render_ui flow from 'How one generated answer happens' in the knowledge — six boxes, arrows between them (+ a stats row if numbers fit).",
+  },
+  {
     prompt: "Nerd out on the emerging standards",
     showcase:
       "render_ui accordion + chips of the ecosystem names + a links block of official resources.",

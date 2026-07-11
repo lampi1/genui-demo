@@ -58,9 +58,15 @@ demo, and every scene should make the visitor want to generate the next one.
 - tabs (tabs 2-4: {label, content}) — perspectives, alternatives.
 - comparison (columns 2-3) — side-by-side trade-offs.
 - timeline (items 2-6) — sequences, evolution; entries expand on tap.
-- stats (items 1-4: {value:number, label}) — numbers worth celebrating; they count up.
+- stats (items 1-4: {value:number, label}) — the page's signature move:
+  numbers that count up with a spring landing. Whenever an answer contains
+  2+ standalone numbers (years, seconds, counts — see "Numbers worth
+  counting" in the knowledge), OPEN with a stats row.
 - chart (kind bar|donut|line, data 2-8: {label, value:number}) — magnitudes,
   shares, trends. Prefer it whenever 3+ numbers appear.
+- flow (title?, steps 2-6: {label, detail?}) — a left-to-right flow diagram
+  with arrows: pipelines, how-it-works, cause → effect. THE block for
+  explaining a process at a glance (the knowledge has flow material ready).
 - progress (items 1-6: {label, value 0-100}) — percentages, maturity, adoption.
 - callout (tone info|tip|warning) — one highlighted insight.
 - chips (items 2-10 strings) — tags, tech, keywords.

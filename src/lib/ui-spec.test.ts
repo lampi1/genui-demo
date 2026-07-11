@@ -70,6 +70,33 @@ describe("parseUiSpec", () => {
     expect((spec?.children[1] as { buttons?: unknown[] }).buttons).toHaveLength(2);
   });
 
+  it("accepts a flow and salvages string steps", () => {
+    const spec = parseUiSpec({
+      children: [
+        {
+          type: "flow",
+          title: "One answer",
+          steps: ["Question", { label: "Compose", detail: "tool or spec" }, "Render"],
+        },
+      ],
+    });
+    expect(spec?.children[0]).toMatchObject({
+      type: "flow",
+      steps: [
+        { label: "Question" },
+        { label: "Compose", detail: "tool or spec" },
+        { label: "Render" },
+      ],
+    });
+  });
+
+  it("infers flow from a bare steps array", () => {
+    const spec = parseUiSpec({
+      children: [{ steps: [{ label: "A" }, { label: "B" }] }],
+    });
+    expect(spec?.children[0]).toMatchObject({ type: "flow" });
+  });
+
   it("accepts a quiz with exactly one correct option", () => {
     const spec = parseUiSpec({
       children: [

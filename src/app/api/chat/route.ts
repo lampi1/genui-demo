@@ -152,7 +152,8 @@ export async function POST(req: Request) {
           "callout (info|tip|warning), chips (tag strings), table (columns+rows), links (official URLs from knowledge only), " +
           "actions (tappable follow-ups: buttons:[{label,message?}]), form, " +
           "code ({content: snippet with real newlines, language?} — the ONLY way to show code), " +
-          "quiz (question + options:[{label, correct?, reaction?}] with EXACTLY ONE correct:true + explanation). " +
+          "quiz (question + options:[{label, correct?, reaction?}] with EXACTLY ONE correct:true + explanation), " +
+          "flow (steps:[{label, detail?}] 2-6 — a left-to-right flow diagram with arrows). " +
           "Use when no curated tool fits. VARY the blocks: never the same layout twice in a row, don't default to accordion, mix kinds in one composition. " +
           "Shapes: text has {content, variant?} — never title; list items are plain strings; " +
           "{title, description} sequences are a timeline; {title, content} sequences are an accordion; " +
