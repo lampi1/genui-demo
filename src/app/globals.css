@@ -1,0 +1,910 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   Design tokens — two skins, one visual language for curated components AND
+   spec-rendered UI (see CONTEXT.md: "Hybrid approach").
+
+   glass — the dark aurora showpiece (default without JS).
+   neu   — light classic neumorphism: soft dual shadows, embossed relief.
+   The theme lives in <html data-theme>; components never hardcode a skin:
+   they use tokens (`ink` replaces white-alpha overlays, `acc-*` replaces
+   fixed accent shades).
+--------------------------------------------------------------------------- */
+:root {
+  --background: #05060a;
+  --foreground: #e7e9ee;
+  --muted: #9aa1b2;
+  --surface: rgba(255, 255, 255, 0.045);
+  --surface-strong: rgba(255, 255, 255, 0.08);
+  --surface-solid: #0b0d16;
+  --edge: rgba(255, 255, 255, 0.1);
+  --ink: #ffffff;
+  --violet: #8b5cf6;
+  --cyan: #22d3ee;
+  --rose: #fb7185;
+  --veil: rgba(5, 6, 10, 0.92);
+  --dot: rgba(255, 255, 255, 0.05);
+  --grad-1: #c4b5fd;
+  --grad-2: #67e8f9;
+  --grad-3: #fda4af;
+  /* Quota ring: plenty left → running low → spent */
+  --ring-ok: #67e8f9;
+  --ring-warn: #fbbf24;
+  --ring-stop: #fb7185;
+  --radius-card: 1.25rem;
+  color-scheme: dark;
+}
+
+:root[data-theme="neu"] {
+  --background: #e0e5ec;
+  --foreground: #3a4256;
+  --muted: #76809a;
+  --surface: #e0e5ec;
+  --surface-strong: #d5dbe6;
+  --surface-solid: #e0e5ec;
+  --edge: rgba(163, 177, 198, 0.35);
+  --ink: #3d4457;
+  --violet: #6d28d9;
+  --cyan: #0e7490;
+  --rose: #be123c;
+  --veil: rgba(224, 229, 236, 0.93);
+  --dot: rgba(61, 68, 87, 0.1);
+  --grad-1: #6d28d9;
+  --grad-2: #0e7490;
+  --grad-3: #be123c;
+  /* Ring tones tuned for the light surface: violet like the send button */
+  --ring-ok: #7c3aed;
+  --ring-warn: #b45309;
+  --ring-stop: #be123c;
+  /* The neumorphic light source: soft light from top-left, shade to
+     bottom-right. Standard ratio: shadow distance : blur = 1 : 2. */
+  --neu-light: rgba(255, 255, 255, 0.72);
+  --neu-dark: #a3b1c6;
+  color-scheme: light;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-edge: var(--edge);
+  --color-ink: var(--ink);
+  --color-acc-violet: var(--violet);
+  --color-acc-cyan: var(--cyan);
+  --color-acc-rose: var(--rose);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+html {
+  background: var(--background);
+}
+
+/* Tailwind v4's preflight leaves buttons with the default cursor — every
+   tappable thing here is a call to action, so the hand is the rule. */
+button:not(:disabled),
+[role="button"]:not(:disabled) {
+  cursor: pointer;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  overflow-x: hidden;
+}
+
+/* ---------------------------------------------------------------------------
+   Aurora background — pure CSS, zero bundle. Three drifting gradient blobs
+   + grain + vignette. Everything pauses under prefers-reduced-motion.
+--------------------------------------------------------------------------- */
+.aurora {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 120% 90% at 50% 120%, #0b0d1a 0%, var(--background) 60%);
+}
+
+/* Neu is matte: no blobs, no grain — just the soft paper and its dot grid */
+[data-theme="neu"] .aurora {
+  background: var(--background);
+}
+
+[data-theme="neu"] .aurora::after,
+[data-theme="neu"] .aurora-blob {
+  display: none;
+}
+
+.aurora::after {
+  /* film grain, inline SVG — keeps gradients from banding */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+.aurora-blob {
+  position: absolute;
+  width: 55vmax;
+  height: 55vmax;
+  border-radius: 50%;
+  filter: blur(90px) saturate(130%);
+  opacity: 0.42;
+  will-change: transform;
+}
+
+.aurora-blob:nth-child(1) {
+  background: radial-gradient(circle at 30% 30%, #7c3aed 0%, transparent 65%);
+  top: -18vmax;
+  left: -12vmax;
+  animation: drift-a 26s ease-in-out infinite alternate;
+}
+
+.aurora-blob:nth-child(2) {
+  background: radial-gradient(circle at 60% 40%, #0891b2 0%, transparent 65%);
+  bottom: -22vmax;
+  right: -14vmax;
+  animation: drift-b 32s ease-in-out infinite alternate;
+}
+
+.aurora-blob:nth-child(3) {
+  background: radial-gradient(circle at 50% 50%, #be185d 0%, transparent 68%);
+  top: 30%;
+  left: 55%;
+  width: 38vmax;
+  height: 38vmax;
+  opacity: 0.25;
+  animation: drift-c 40s ease-in-out infinite alternate;
+}
+
+@keyframes drift-a {
+  from { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); }
+  to   { transform: translate3d(10vmax, 14vmax, 0) scale(1.25) rotate(30deg); }
+}
+
+@keyframes drift-b {
+  from { transform: translate3d(0, 0, 0) scale(1.15); }
+  to   { transform: translate3d(-12vmax, -10vmax, 0) scale(0.9); }
+}
+
+@keyframes drift-c {
+  from { transform: translate3d(0, 0, 0) scale(1); opacity: 0.18; }
+  to   { transform: translate3d(-16vmax, 8vmax, 0) scale(1.4); opacity: 0.3; }
+}
+
+/* ---------------------------------------------------------------------------
+   Surfaces. `.glass` is the app's ONE surface class; each theme gives it a
+   different skin — translucent glass in the dark, embossed neumorphism in
+   the light.
+--------------------------------------------------------------------------- */
+.glass {
+  background: var(--surface);
+  border: 1px solid var(--edge);
+  border-radius: var(--radius-card);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 20px 50px -24px rgba(0, 0, 0, 0.7);
+}
+
+.accent-violet { box-shadow: inset 3px 0 0 var(--violet), 0 20px 50px -28px color-mix(in srgb, var(--violet) 45%, transparent); }
+.accent-cyan   { box-shadow: inset 3px 0 0 var(--cyan),   0 20px 50px -28px color-mix(in srgb, var(--cyan) 45%, transparent); }
+.accent-rose   { box-shadow: inset 3px 0 0 var(--rose),   0 20px 50px -28px color-mix(in srgb, var(--rose) 45%, transparent); }
+
+/* Interactive lift on glass surfaces that host interactions */
+.glass {
+  transition:
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.35s ease,
+    box-shadow 0.35s ease;
+}
+
+.glass:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-2px);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.08) inset,
+    0 26px 60px -26px rgba(0, 0, 0, 0.85),
+    0 0 40px -18px color-mix(in srgb, var(--violet) 35%, transparent);
+}
+
+/* --- Neumorphic skin: soft relief instead of translucency ---------------- */
+[data-theme="neu"] .glass {
+  background: var(--surface);
+  border-color: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow:
+    6px 6px 12px var(--neu-dark),
+    -6px -6px 12px var(--neu-light);
+}
+
+[data-theme="neu"] .glass:hover {
+  border-color: transparent;
+  box-shadow:
+    8px 8px 16px var(--neu-dark),
+    -8px -8px 16px var(--neu-light);
+}
+
+/* Classic neumorphism: text inputs sit BELOW the surface, carved in */
+[data-theme="neu"] input.glass,
+[data-theme="neu"] input.glass:hover {
+  transform: none;
+  box-shadow:
+    inset 4px 4px 8px var(--neu-dark),
+    inset -4px -4px 8px var(--neu-light);
+}
+
+/* Neu keeps accents in the content, not on the chrome: no neon side bars */
+[data-theme="neu"] .accent-violet,
+[data-theme="neu"] .accent-cyan,
+[data-theme="neu"] .accent-rose {
+  border-color: transparent;
+  box-shadow:
+    6px 6px 12px var(--neu-dark),
+    -6px -6px 12px var(--neu-light);
+}
+
+/* Form controls carved into the surface, classic neumorphism */
+[data-theme="neu"] .field-well,
+[data-theme="neu"] .field-well:focus {
+  border-color: transparent;
+  background: var(--surface);
+  box-shadow:
+    inset 3px 3px 6px var(--neu-dark),
+    inset -3px -3px 6px var(--neu-light);
+}
+
+[data-theme="neu"] .field-well:focus {
+  border-color: color-mix(in srgb, var(--cyan) 45%, transparent);
+}
+
+[data-theme="neu"] .choice-pill {
+  border-color: transparent;
+  background: var(--surface);
+  color: var(--muted);
+  box-shadow:
+    3px 3px 6px var(--neu-dark),
+    -3px -3px 6px var(--neu-light);
+}
+
+[data-theme="neu"] .choice-pill:hover {
+  border-color: transparent;
+  color: var(--foreground);
+}
+
+/* The chosen option sinks into the surface */
+[data-theme="neu"] .choice-pill[aria-checked="true"] {
+  border-color: transparent;
+  background: var(--surface);
+  color: var(--cyan);
+  box-shadow:
+    inset 3px 3px 6px var(--neu-dark),
+    inset -3px -3px 6px var(--neu-light);
+}
+
+/* White-light decorations (sweeps, spotlights, glows) belong to Glass only */
+[data-theme="neu"] .spotlight,
+[data-theme="neu"] .shine::before,
+[data-theme="neu"] .card-glow,
+[data-theme="neu"] .shimmer::after,
+[data-theme="neu"] .beam {
+  display: none;
+}
+
+/* Focus-frame corners on generated blocks — the "being composed" signature */
+.frame::before,
+.frame::after {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  z-index: 5;
+  pointer-events: none;
+  animation: frame-in 0.6s 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.frame::before {
+  top: 3px;
+  left: -6px;
+  border-top: 1.5px solid color-mix(in srgb, var(--cyan) 55%, transparent);
+  border-left: 1.5px solid color-mix(in srgb, var(--cyan) 55%, transparent);
+}
+
+.frame::after {
+  bottom: -6px;
+  right: -6px;
+  border-bottom: 1.5px solid color-mix(in srgb, var(--violet) 55%, transparent);
+  border-right: 1.5px solid color-mix(in srgb, var(--violet) 55%, transparent);
+}
+
+@keyframes frame-in {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+}
+
+/* Neu is quiet matter: no neon corner marks on generated blocks */
+[data-theme="neu"] .frame::before,
+[data-theme="neu"] .frame::after {
+  display: none;
+}
+
+/* Blueprint dot grid behind everything — the canvas the UI is drawn on */
+.grid-dots {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(var(--dot) 1px, transparent 1.3px);
+  background-size: 26px 26px;
+  mask-image: radial-gradient(ellipse 95% 75% at 50% 42%, black 25%, transparent 78%);
+  pointer-events: none;
+}
+
+/* Slow sheen across the hero's gradient title */
+.sheen {
+  background-size: 200% auto;
+  animation: sheen 7s linear infinite;
+}
+
+@keyframes sheen {
+  to {
+    background-position: 200% center;
+  }
+}
+
+/* Diagonal light sweep on hover — for showcase (hand-crafted) surfaces */
+.shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.shine::before {
+  content: "";
+  position: absolute;
+  inset: -60% auto auto -60%;
+  width: 55%;
+  height: 220%;
+  transform: rotate(25deg) translateX(-240%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.09),
+    transparent
+  );
+  transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+
+.shine:hover::before {
+  transform: rotate(25deg) translateX(520%);
+}
+
+/* Decorative corner glow inside showcase cards */
+.card-glow {
+  position: absolute;
+  top: -5rem;
+  right: -5rem;
+  width: 14rem;
+  height: 14rem;
+  border-radius: 50%;
+  filter: blur(40px);
+  opacity: 0.16;
+  pointer-events: none;
+}
+
+/* Timeline spine draws itself top-down */
+.line-draw {
+  transform-origin: top;
+  animation: draw 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: 0.2s;
+}
+
+@keyframes draw {
+  from { transform: scaleY(0); }
+  to   { transform: scaleY(1); }
+}
+
+/* Conic ring slowly orbiting the contact avatar */
+.ring-spin {
+  background: conic-gradient(
+    from 0deg,
+    var(--violet),
+    var(--cyan),
+    var(--rose),
+    var(--violet)
+  );
+  animation: orbit 6s linear infinite;
+}
+
+@keyframes orbit {
+  to { transform: rotate(360deg); }
+}
+
+/* -----------------------------------------------------------------------
+   Flip cards. The .glass hover lift sets `transform`, which would OVERRIDE
+   a face's rotateY and glitch the flip (especially with hover+flip together)
+   — so faces get explicit transforms in every state, with webkit prefixes
+   for iOS.
+----------------------------------------------------------------------- */
+.flip-scene {
+  display: grid;
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+  transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.flip-scene.flipped {
+  transform: rotateY(180deg);
+}
+
+.flip-face {
+  grid-area: 1 / 1;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  /* Solid faces: backdrop-filter on 3D-transformed layers is a second source
+     of permanently blurry text, so flip faces trade translucency for clarity. */
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: var(--surface-solid);
+}
+
+.glass.flip-face,
+.glass.flip-face:hover {
+  transform: translateZ(0);
+}
+
+.glass.flip-face-back,
+.glass.flip-face-back:hover {
+  transform: rotateY(180deg);
+}
+
+/* Once the flip lands, drop every 3D transform so the browser re-rasterizes
+   the text sharp (rotated + preserve-3d layers stay blurry otherwise). */
+.flip-scene.no-flip-transition {
+  transition: none !important;
+}
+
+.flip-scene.flipped.settled {
+  transform: none;
+  /* settling must be an invisible switch, never a second animation */
+  transition: none;
+}
+
+.flip-scene.flipped.settled .flip-face,
+.flip-scene.no-flip-transition .flip-face {
+  transition: none !important;
+}
+
+.flip-scene.flipped.settled .flip-face {
+  visibility: hidden;
+}
+
+.flip-scene.flipped.settled .flip-face-back {
+  visibility: visible;
+}
+
+.flip-scene.flipped.settled .glass.flip-face-back,
+.flip-scene.flipped.settled .glass.flip-face-back:hover {
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flip-scene {
+    transition: none;
+  }
+}
+
+/* Pointer-tracking 3D tilt (vars set by the Tilt component) */
+.tilt {
+  position: relative;
+  transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition: transform 0.25s ease-out;
+  will-change: transform;
+  transform-style: preserve-3d;
+}
+
+/* Cursor-following spotlight inside tilted surfaces */
+.spotlight {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-card);
+  background: radial-gradient(
+    260px circle at var(--mx, 50%) var(--my, 50%),
+    rgba(255, 255, 255, 0.09),
+    transparent 65%
+  );
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.tilt:hover .spotlight {
+  opacity: 1;
+}
+
+/* Rotating border beam — a spark orbiting the card's edge */
+@property --beam-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.beam {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-card);
+  padding: 1px;
+  background: conic-gradient(
+    from var(--beam-angle),
+    transparent 0deg 300deg,
+    rgba(139, 92, 246, 0.55) 330deg,
+    rgba(103, 232, 249, 0.9) 350deg,
+    transparent 360deg
+  );
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  /* Animating a painted gradient is a per-frame repaint of the whole card:
+     run it ONLY while hovered, or idle cards drag the entire page down. */
+  animation: beam-orbit 3.5s linear infinite;
+  animation-play-state: paused;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+
+.tilt:hover .beam {
+  opacity: 1;
+  animation-play-state: running;
+}
+
+@keyframes beam-orbit {
+  to { --beam-angle: 360deg; }
+}
+
+/* Bars and meters grow from the baseline */
+.fill-grow {
+  transform-origin: left;
+  animation: grow-x 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--stagger, 0) * 90ms + 120ms);
+}
+
+@keyframes grow-x {
+  from { transform: scaleX(0); }
+}
+
+/* SVG strokes draw themselves (pathLength normalized to 1) */
+.stroke-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: stroke-in 1.1s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both;
+}
+
+@keyframes stroke-in {
+  to { stroke-dashoffset: 0; }
+}
+
+/* Timeline dots land with a spring */
+.dot-pop {
+  animation: pop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation-delay: calc(var(--stagger, 0) * 120ms + 150ms);
+}
+
+@keyframes pop {
+  0% { scale: 0; }
+  100% { scale: 1; }
+}
+
+/* Horizontal chip rail without a visible scrollbar, edges softly masked.
+   The block padding (offset by margin) keeps the chips' soft shadows inside
+   the scroll box — otherwise the clip cuts them into squares. */
+.chip-rail {
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-block: 14px;
+  /* Top padding is reabsorbed; the bottom stays as breathing room between
+     the suggestions and the composer. */
+  margin-block: -14px 6px;
+  mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+}
+
+.chip-rail::-webkit-scrollbar {
+  display: none;
+}
+
+/* AI-generated action pills — the demo's follow-up buttons, skinned per theme */
+.gen-action {
+  border-radius: 9999px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 35%, transparent);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--violet) 15%, transparent),
+    color-mix(in srgb, var(--cyan) 15%, transparent)
+  );
+  color: var(--cyan);
+  transition:
+    box-shadow 0.25s ease,
+    border-color 0.25s ease,
+    background 0.25s ease,
+    transform 0.15s ease;
+}
+
+.gen-action:hover {
+  border-color: color-mix(in srgb, var(--cyan) 60%, transparent);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--violet) 25%, transparent),
+    color-mix(in srgb, var(--cyan) 25%, transparent)
+  );
+}
+
+.gen-action:active {
+  transform: scale(0.97);
+}
+
+[data-theme="neu"] .gen-action {
+  border-color: transparent;
+  background: var(--surface);
+  box-shadow:
+    4px 4px 8px var(--neu-dark),
+    -4px -4px 8px var(--neu-light);
+}
+
+[data-theme="neu"] .gen-action:hover {
+  box-shadow:
+    5px 5px 10px var(--neu-dark),
+    -5px -5px 10px var(--neu-light);
+}
+
+/* Neumorphic press: the pill sinks INTO the surface */
+[data-theme="neu"] .gen-action:active {
+  transform: none;
+  box-shadow:
+    inset 3px 3px 6px var(--neu-dark),
+    inset -3px -3px 6px var(--neu-light);
+}
+
+/* Generated carousel: one block per view, native snap, hidden scrollbar.
+   The padding (reabsorbed by the negative margin) gives every soft shadow
+   room inside the scroll clip — without it they'd be cut into square edges. */
+.carousel-track {
+  display: flex;
+  /* The gap must exceed the side padding, or a sliver of the neighbouring
+     slide (and its shadow) peeks through at rest. */
+  gap: 28px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  /* A swipe past the last slide must not turn into browser back-navigation */
+  overscroll-behavior-x: contain;
+  padding: 20px;
+  margin: -20px;
+}
+
+.carousel-track::-webkit-scrollbar {
+  display: none;
+}
+
+.carousel-slide {
+  flex: 0 0 100%;
+  min-width: 0;
+  scroll-snap-align: center;
+}
+
+/* Quiz: a wrong pick shakes its head */
+.quiz-shake {
+  animation: quiz-shake 0.4s ease;
+}
+
+@keyframes quiz-shake {
+  25% { translate: -5px 0; }
+  50% { translate: 5px 0; }
+  75% { translate: -2px 0; }
+}
+
+/* Code-block copy chip: success tone owned entirely by the theme — bright
+   emerald on glass; on neu a deep readable green, sunk INTO the surface. */
+.copy-chip[aria-pressed="true"] {
+  color: #6ee7b7;
+}
+
+[data-theme="neu"] .copy-chip[aria-pressed="true"] {
+  color: #047857;
+  box-shadow:
+    inset 2px 2px 5px var(--neu-dark),
+    inset -2px -2px 5px var(--neu-light);
+}
+
+/* Quota arc around the send button: glows only where glow belongs (glass) */
+.quota-arc {
+  stroke: var(--ring-color);
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--ring-color) 45%, transparent));
+}
+
+[data-theme="neu"] .quota-arc {
+  filter: none;
+}
+
+/* Status dot: breathes while the answer composes */
+.badge-dot-pulse {
+  animation: badge-breathe 2.2s ease-in-out infinite;
+}
+
+@keyframes badge-breathe {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--cyan) 55%, transparent); }
+  50% { box-shadow: 0 0 0 4px transparent; }
+}
+
+.gradient-text {
+  background: linear-gradient(100deg, var(--grad-1) 0%, var(--grad-2) 55%, var(--grad-3) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Fixed composer backdrop — fades the page out under the input */
+.composer-veil {
+  background: linear-gradient(to top, var(--veil) 55%, transparent);
+}
+
+/* Native dropdown panels follow the theme */
+select option {
+  background: var(--surface-solid);
+  color: var(--foreground);
+}
+
+/* ---------------------------------------------------------------------------
+   Enter / exit choreography. Every generated piece rises out of a blur;
+   children stagger via --stagger (set inline by the renderer).
+--------------------------------------------------------------------------- */
+.enter {
+  animation: rise 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--stagger, 0) * 90ms);
+}
+
+@keyframes rise {
+  0% {
+    opacity: 0;
+    transform: translateY(26px) scale(0.965);
+    filter: blur(10px);
+  }
+  60% { filter: blur(0); }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+.exit {
+  animation: dissolve 0.4s cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+@keyframes dissolve {
+  to {
+    opacity: 0;
+    transform: translateY(-14px) scale(0.97);
+    filter: blur(8px);
+  }
+}
+
+/* Streaming skeleton — glass block with a light sweep */
+.shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.08) 50%,
+    transparent 70%
+  );
+  transform: translateX(-100%);
+  animation: sweep 1.6s ease-in-out infinite;
+}
+
+@keyframes sweep {
+  to { transform: translateX(100%); }
+}
+
+/* ChatGPT-style word reveal while text streams in */
+.word-in {
+  display: inline-block;
+  animation: word-in 0.3s ease-out both;
+}
+
+@keyframes word-in {
+  from {
+    opacity: 0;
+    filter: blur(4px);
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    filter: none;
+    transform: none;
+  }
+}
+
+/* Blinking caret for the streaming assistant text */
+.caret::after {
+  content: "▍";
+  margin-left: 2px;
+  color: var(--cyan);
+  animation: blink 1s steps(2) infinite;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+/* ---------------------------------------------------------------------------
+   Quiet scrollbar + reduced motion
+--------------------------------------------------------------------------- */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--edge) transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora-blob,
+  .enter,
+  .exit,
+  .shimmer::after,
+  .caret::after,
+  .badge-dot-pulse,
+  .line-draw,
+  .ring-spin,
+  .beam,
+  .dot-pop,
+  .word-in,
+  .sheen,
+  .fill-grow,
+  .stroke-draw,
+  .frame::before,
+  .frame::after {
+    animation: none !important;
+  }
+
+  .fill-grow {
+    transform: none;
+  }
+
+  .stroke-draw {
+    stroke-dashoffset: 0;
+  }
+
+  .dot-pop {
+    scale: 1;
+  }
+
+  .line-draw {
+    transform: none;
+  }
+
+  .glass,
+  .glass:hover {
+    transform: none;
+  }
+
+  .enter {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
