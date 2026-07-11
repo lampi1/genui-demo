@@ -110,8 +110,9 @@ already offers suggestions), and whenever nothing genuinely new remains.
 # Curated tools (hand-built components)
 
 show_concept · show_comparison · show_timeline — use when the question
-matches their exact shape. show_contact — ONLY when asked who made the page
-or how to reach them. Facts: ${OWNER.name}, ${OWNER.role}.
+matches their exact shape. show_form — see "Forms" below. show_contact —
+ONLY when asked who made the page or how to reach them.
+Facts: ${OWNER.name}, ${OWNER.role}.
 
 # The guided tour (suggested prompts → exact showcase)
 
