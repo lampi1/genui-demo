@@ -115,7 +115,9 @@ export async function POST(req: Request) {
       show_concept: tool({
         description:
           "Present ONE concept as a polished card: title, optional tagline, punchy points. " +
-          "NOT for multiple alternatives (show_comparison) or sequences (show_timeline).",
+          "NOT for multiple alternatives (show_comparison), sequences (show_timeline), " +
+          "or myth-vs-reality / term-vs-definition reveals (render_ui flipcards). " +
+          "NEVER use it to describe an interface you could render instead.",
         inputSchema: conceptInput,
         execute: echo,
       }),
@@ -153,7 +155,10 @@ export async function POST(req: Request) {
           "actions (tappable follow-ups: buttons:[{label,message?}]), form, " +
           "code ({content: snippet with real newlines, language?} — the ONLY way to show code), " +
           "quiz (question + options:[{label, correct?, reaction?}] with EXACTLY ONE correct:true + explanation), " +
-          "flow (steps:[{label, detail?}] 2-6 — a left-to-right flow diagram with arrows). " +
+          "flow (steps:[{label, detail?}] 2-6 — a left-to-right flow diagram with arrows), " +
+          "flipcards (cards:[{front, back}] 2-4 — tap-to-flip cards: term→definition, myth→reality; " +
+          "ALWAYS this block when the visitor mentions flip cards, myths or reveals), " +
+          "gauge (items:[{label, value:0-100, suffix?}] 1-3 — radial dials that sweep to their score). " +
           "Use when no curated tool fits. VARY the blocks: never the same layout twice in a row, don't default to accordion, mix kinds in one composition. " +
           "Shapes: text has {content, variant?} — never title; list items are plain strings; " +
           "{title, description} sequences are a timeline; {title, content} sequences are an accordion; " +

@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { LanguageModelV4 } from "@ai-sdk/provider";
-import { isRateLimitError, withFallback } from "./model";
+import { buildChatModel, isRateLimitError, withFallback } from "./model";
 
 function fakeModel(
   id: string,
@@ -28,6 +28,24 @@ describe("isRateLimitError", () => {
     expect(isRateLimitError({ statusCode: 429 })).toBe(true);
     expect(isRateLimitError(new Error("high demand, try later"))).toBe(true);
     expect(isRateLimitError(new Error("invalid api key"))).toBe(false);
+  });
+});
+
+describe("buildChatModel", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("puts the paid OpenAI model first, the free tiers behind it", () => {
+    vi.stubEnv("OPENAI_API_KEY", "test-key");
+    vi.stubEnv("GROQ_API_KEY", "test-key");
+    expect(buildChatModel().modelId).toBe(
+      "gpt-5-nano -> gemini-flash-lite-latest -> llama-3.3-70b-versatile",
+    );
+  });
+
+  it("leads with Gemini when no OpenAI key is configured", () => {
+    vi.stubEnv("OPENAI_API_KEY", "");
+    vi.stubEnv("GROQ_API_KEY", "");
+    expect(buildChatModel().modelId).toBe("gemini-flash-lite-latest");
   });
 });
 

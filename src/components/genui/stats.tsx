@@ -9,7 +9,7 @@ type Stat = { value: number; label: string; prefix?: string; suffix?: string };
  * decelerate like an odometer running out of breath (ease-out-expo), then
  * land with a spring pop and a brief glow. `done` drives the landing CSS.
  */
-function useCountUp(target: number, delayMs: number, durationMs = 1500) {
+export function useCountUp(target: number, delayMs: number, durationMs = 1500) {
   const [display, setDisplay] = useState(0);
   const [done, setDone] = useState(false);
 

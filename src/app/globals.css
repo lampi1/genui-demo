@@ -585,6 +585,12 @@ body {
   from { transform: scaleX(0); }
 }
 
+/* Gauge dials sweep open (the component flips stroke-dasharray after mount) */
+.gauge-sweep {
+  transition: stroke-dasharray 1.5s cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: calc(var(--stagger, 0) * 180ms);
+}
+
 /* SVG strokes draw themselves (pathLength normalized to 1) */
 .stroke-draw {
   stroke-dasharray: 1;
@@ -913,6 +919,10 @@ select option {
 
   .stroke-draw {
     stroke-dashoffset: 0;
+  }
+
+  .gauge-sweep {
+    transition: none;
   }
 
   .dot-pop {

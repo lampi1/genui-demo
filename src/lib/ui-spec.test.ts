@@ -545,6 +545,75 @@ describe("parseUiSpec", () => {
     expect(progress?.type === "progress" && progress.items[0].value).toBe(100);
   });
 
+  it("accepts flipcards and repairs front/back aliases", () => {
+    const spec = parseUiSpec({
+      children: [
+        {
+          type: "flipcards",
+          cards: [
+            { front: "A2UI", back: "Google's declarative payload format." },
+            { title: "AG-UI", description: "The event transport layer." },
+            { question: "MCP Apps?", answer: "Tools that return interactive UI." },
+          ],
+        },
+      ],
+    });
+    expect(spec?.children[0]).toEqual({
+      type: "flipcards",
+      cards: [
+        { front: "A2UI", back: "Google's declarative payload format." },
+        { front: "AG-UI", back: "The event transport layer." },
+        { front: "MCP Apps?", back: "Tools that return interactive UI." },
+      ],
+    });
+  });
+
+  it("infers flipcards from a bare cards array and merges a lone card into text", () => {
+    const spec = parseUiSpec({
+      children: [
+        { cards: [{ front: "Myth", back: "Reality." }, { front: "A", back: "B" }] },
+        { type: "flipcards", cards: [{ front: "Only", back: "One." }] },
+      ],
+    });
+    expect(spec?.children[0]).toMatchObject({ type: "flipcards" });
+    expect(spec?.children[1]).toMatchObject({ type: "text", content: "Only — One." });
+  });
+
+  it("accepts a gauge, clamps its values and coerces numeric strings", () => {
+    const spec = parseUiSpec({
+      children: [
+        {
+          type: "gauge",
+          items: [
+            { label: "Reliability", value: "95%" },
+            { label: "Overflow", value: 140 },
+            { label: "Basso", value: "n/a" },
+          ],
+        },
+      ],
+    });
+    expect(spec?.children[0]).toMatchObject({
+      type: "gauge",
+      items: [
+        { label: "Reliability", value: 95 },
+        { label: "Overflow", value: 100 },
+      ],
+    });
+  });
+
+  it("keeps the display text variant and drops unknown variants", () => {
+    const spec = parseUiSpec({
+      children: [
+        { type: "text", content: "Generative UI", variant: "display" },
+      ],
+    });
+    expect(spec?.children[0]).toEqual({
+      type: "text",
+      content: "Generative UI",
+      variant: "display",
+    });
+  });
+
   it("keeps only allow-listed link domains", () => {
     const spec = parseUiSpec({
       children: [

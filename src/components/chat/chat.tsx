@@ -183,7 +183,8 @@ export function Chat() {
               className="enter text-balance text-sm text-muted/70"
               style={{ "--stagger": 2 } as React.CSSProperties}
             >
-              Walls of text are over — answers arrive as interfaces you can touch.
+              Ask anything about generative UI — the answer arrives as an
+              interface you can touch, never as a wall of text.
             </p>
           </div>
           <div className="flex flex-wrap justify-center gap-3">

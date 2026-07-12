@@ -34,6 +34,11 @@ export const SUGGESTIONS: readonly Suggestion[] = [
       "render_ui quiz about generative UI: witty but plausible wrong options, EXACTLY ONE correct, a sharp reaction line each, a teaching explanation.",
   },
   {
+    prompt: "Bust the myths — deal the flip cards",
+    showcase:
+      "render_ui flipcards from 'Myths vs reality' in the knowledge — the myth on the front, the reality on the back.",
+  },
+  {
     prompt: "Surprise me with a layout you've never drawn",
     showcase:
       "render_ui mixing 3+ block kinds this conversation has NOT seen yet — your freest composition.",
@@ -41,7 +46,7 @@ export const SUGGESTIONS: readonly Suggestion[] = [
   {
     prompt: "Let the three approaches fight it out in numbers",
     showcase:
-      "render_ui stats row (count-up) + chart + progress meters, all from the 'Approach scorecard' in the knowledge — the same three contenders told three ways, never invented data.",
+      "render_ui with EXACTLY three data blocks, each a DIFFERENT kind: one stats row (count-up), ONE chart, one gauge (3 dials) — all from the 'Approach scorecard' in the knowledge, never invented data. Not three charts.",
   },
   {
     prompt: "Put the three approaches face to face",

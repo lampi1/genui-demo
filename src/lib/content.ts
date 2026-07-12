@@ -72,7 +72,7 @@ Six steps, about a second, and zero pixels existed before the question.
 - 2024 — the year tool-calling UI went mainstream (AI SDK 3.0).
 - 2025 — the year the protocols got names (A2UI, AG-UI, MCP Apps).
 
-## Myths vs reality (quiz material)
+## Myths vs reality (quiz and flipcards material — myth on the front, reality on the back)
 
 - Myth: "generative UI means the model writes HTML." Reality: mostly it
   fills typed props or emits a declarative spec — raw HTML is the rare,
@@ -100,7 +100,7 @@ Six steps, about a second, and zero pixels existed before the question.
 They stack rather than compete: AG-UI transports, A2UI describes,
 frameworks render.
 
-## Approach scorecard (editorial ratings, 0-100 — chartable)
+## Approach scorecard (editorial ratings, 0-100 — chart, gauge and progress material)
 
 |                       | Reliability | Flexibility | Speed |
 | Tool-calling          | 95          | 40          | 90    |

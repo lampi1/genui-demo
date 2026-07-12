@@ -9,7 +9,9 @@ import { Comparison } from "./genui/comparison";
 import { GenChart } from "./genui/gen-chart";
 import { GenForm } from "./genui/gen-form";
 import { Callout, Chips, DataTable, Links, Progress } from "./genui/extras";
+import { FlipCards } from "./genui/flip-cards";
 import { Flow } from "./genui/flow";
+import { Gauge } from "./genui/gauge";
 import { Quiz } from "./genui/quiz";
 import { Stats } from "./genui/stats";
 import { Tabs } from "./genui/tabs";
@@ -23,6 +25,8 @@ const ACCENT_CLASS = {
 } as const;
 
 const TEXT_CLASS = {
+  display:
+    "gradient-text w-fit text-balance text-2xl sm:text-3xl font-semibold tracking-tight",
   lead: "text-base sm:text-lg font-medium leading-relaxed",
   body: "text-sm leading-relaxed text-foreground/90",
   caption: "text-xs text-muted",
@@ -48,6 +52,8 @@ const SLIDE_TYPES = new Set<UiNode["type"]>([
   "stats",
   "quiz",
   "flow",
+  "flipcards",
+  "gauge",
 ]);
 
 /**
@@ -186,6 +192,12 @@ function SpecNode({ node, index }: { node: UiNode; index: number }) {
 
     case "flow":
       return <Flow title={node.title} steps={node.steps} />;
+
+    case "flipcards":
+      return <FlipCards cards={node.cards} />;
+
+    case "gauge":
+      return <Gauge items={node.items} />;
 
     case "card":
       return (

@@ -86,7 +86,11 @@ const looseNode = z.looseObject({
   ordered: z.boolean().optional(),
   description: z.string().optional(),
   submitLabel: z.string().optional(),
-  items: z.array(z.unknown()).optional().describe("REQUIRED for list/timeline/accordion/stats"),
+  items: z
+    .array(z.unknown())
+    .optional()
+    .describe("REQUIRED for list/timeline/accordion/stats/gauge"),
+  cards: z.array(z.unknown()).optional().describe("flipcards only: {front, back}"),
   tabs: z.array(z.unknown()).optional(),
   question: z.string().optional().describe("quiz only"),
   options: z.array(z.unknown()).optional().describe("quiz only: {label, correct?, reaction?}"),

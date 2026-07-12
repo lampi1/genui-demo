@@ -29,6 +29,8 @@ export const ALLOWED_COMPONENTS = [
   "links",
   "quiz",
   "flow",
+  "flipcards",
+  "gauge",
 ] as const;
 
 /** Domains a model-emitted link may point to — anything else is dropped. */
@@ -74,9 +76,11 @@ const textNode = z.object({
     .refine((content) => !/^\s*\{\s*"/.test(content), "JSON is not text")
     .describe("Plain text. No markdown syntax."),
   variant: z
-    .enum(["lead", "body", "caption", "code"])
+    .enum(["display", "lead", "body", "caption", "code"])
     .optional()
-    .describe("lead = large intro line, caption = small muted, code = monospace"),
+    .describe(
+      "display = one big gradient headline, lead = large intro line, caption = small muted, code = monospace",
+    ),
 });
 
 const listNode = z.object({
@@ -295,6 +299,35 @@ const flowNode = z.object({
     .describe("A left-to-right flow diagram: each step becomes a box, arrows join them."),
 });
 
+const flipcardsNode = z.object({
+  type: z.literal("flipcards"),
+  cards: z
+    .array(
+      z.object({
+        front: z.string().min(1).describe("The teaser face: a term, a question, a myth"),
+        back: z.string().min(1).describe("The payoff revealed on flip"),
+      }),
+    )
+    .min(2)
+    .max(4)
+    .describe("A grid of cards that flip on tap — fronts tease, backs reveal."),
+});
+
+const gaugeNode = z.object({
+  type: z.literal("gauge"),
+  items: z
+    .array(
+      z.object({
+        label: z.string(),
+        value: z.number().describe("0-100"),
+        suffix: z.string().optional().describe("unit after the number, e.g. '%'"),
+      }),
+    )
+    .min(1)
+    .max(3)
+    .describe("Radial dials that sweep to their value — scores, ratings, maturity."),
+});
+
 const leafNode = z.discriminatedUnion("type", [
   textNode,
   listNode,
@@ -314,6 +347,8 @@ const leafNode = z.discriminatedUnion("type", [
   linksNode,
   quizNode,
   flowNode,
+  flipcardsNode,
+  gaugeNode,
 ]);
 
 // --- Containers, unrolled to a bounded depth ------------------------------
@@ -409,6 +444,7 @@ export function repairUiSpecValue(value: unknown): unknown {
     else if (Array.isArray(node.rows)) node.type = "table";
     else if (Array.isArray(node.data)) node.type = "chart";
     else if (Array.isArray(node.steps)) node.type = "flow";
+    else if (Array.isArray(node.cards)) node.type = "flipcards";
     else if (Array.isArray(node.items)) node.type = "list";
     else if (Array.isArray(node.columns)) node.type = "comparison";
     else if (Array.isArray(node.children)) node.type = "stack";
@@ -432,6 +468,8 @@ export function repairUiSpecValue(value: unknown): unknown {
     links: "items",
     quiz: "options",
     flow: "steps",
+    flipcards: "cards",
+    gauge: "items",
   };
   const aliasTarget = COLLECTION_KEY[node.type as string];
   if (aliasTarget && !Array.isArray(node[aliasTarget])) {
@@ -448,6 +486,7 @@ export function repairUiSpecValue(value: unknown): unknown {
       "links",
       "options",
       "steps",
+      "cards",
     ]
       .filter((key) => key !== aliasTarget)
       .find((key) => Array.isArray(node[key]));
@@ -565,6 +604,38 @@ export function repairUiSpecValue(value: unknown): unknown {
       .filter((step) => step !== null);
   }
 
+  // Flip cards: front/back arrive under every near-synonym small models use.
+  if (node.type === "flipcards" && Array.isArray(node.cards)) {
+    node.cards = node.cards
+      .map((card) => {
+        if (typeof card !== "object" || card === null) return null;
+        const entry = { ...(card as Record<string, unknown>) };
+        if (typeof entry.front !== "string" || entry.front.trim() === "") {
+          const alias = [entry.title, entry.label, entry.term, entry.question].find(
+            (candidate) => typeof candidate === "string" && candidate.trim() !== "",
+          );
+          if (alias) entry.front = alias;
+        }
+        if (typeof entry.back !== "string" || entry.back.trim() === "") {
+          const alias = [
+            entry.content,
+            entry.description,
+            entry.detail,
+            entry.answer,
+            entry.text,
+          ].find((candidate) => typeof candidate === "string" && candidate.trim() !== "");
+          if (alias) entry.back = alias;
+        }
+        return typeof entry.front === "string" &&
+          entry.front.trim() !== "" &&
+          typeof entry.back === "string" &&
+          entry.back.trim() !== ""
+          ? { front: entry.front, back: entry.back }
+          : null;
+      })
+      .filter((card) => card !== null);
+  }
+
   if (node.type === "tabs" && Array.isArray(node.tabs)) {
     node.tabs = node.tabs.map((tab) => {
       if (typeof tab !== "object" || tab === null) return tab;
@@ -595,7 +666,7 @@ export function repairUiSpecValue(value: unknown): unknown {
 
   // Enums are style hints — an out-of-enum value must not sink the spec.
   const enums: Record<string, readonly string[]> = {
-    variant: ["lead", "body", "caption", "code"],
+    variant: ["display", "lead", "body", "caption", "code"],
     accent: ["violet", "cyan", "rose", "none"],
     direction: ["vertical", "horizontal"],
     kind: ["bar", "donut", "line"],
@@ -632,11 +703,13 @@ export function repairUiSpecValue(value: unknown): unknown {
   }
 
 
-  // Numeric collections (chart data, progress items) get the same treatment
-  // as stats: coerce numeric strings, drop what never becomes a number.
+  // Numeric collections (chart data, progress/gauge items) get the same
+  // treatment as stats: coerce numeric strings, drop what never becomes a
+  // number; percentage-shaped values clamp into 0-100.
   for (const [numericType, key] of [
     ["chart", "data"],
     ["progress", "items"],
+    ["gauge", "items"],
   ] as const) {
     if (node.type === numericType && Array.isArray(node[key])) {
       node[key] = (node[key] as unknown[])
@@ -647,7 +720,7 @@ export function repairUiSpecValue(value: unknown): unknown {
             const numeric = Number(entry.value.replace(/[^\d.-]/g, ""));
             if (Number.isFinite(numeric)) entry.value = numeric;
           }
-          if (numericType === "progress" && typeof entry.value === "number") {
+          if (numericType !== "chart" && typeof entry.value === "number") {
             entry.value = Math.max(0, Math.min(100, entry.value));
           }
           return entry;
@@ -732,6 +805,8 @@ export function repairUiSpecValue(value: unknown): unknown {
     form: "fields",
     quiz: "options",
     flow: "steps",
+    flipcards: "cards",
+    gauge: "items",
   };
   const collectionKey = collectionOf[node.type as string];
   if (collectionKey) {
@@ -747,11 +822,13 @@ export function repairUiSpecValue(value: unknown): unknown {
     // lone entry into a text line rather than fail.
     if (
       collection.length === 1 &&
-      ["accordion", "tabs", "timeline", "flow"].includes(node.type as string)
+      ["accordion", "tabs", "timeline", "flow", "flipcards"].includes(node.type as string)
     ) {
       const only = collection[0] as Record<string, unknown>;
-      const label = [only?.title, only?.label].find((v) => typeof v === "string");
-      const body = [only?.content, only?.description, only?.detail].find(
+      const label = [only?.title, only?.label, only?.front].find(
+        (v) => typeof v === "string",
+      );
+      const body = [only?.content, only?.description, only?.detail, only?.back].find(
         (v) => typeof v === "string",
       );
       const merged = [label, body].filter(Boolean).join(" — ");
@@ -774,6 +851,8 @@ export function repairUiSpecValue(value: unknown): unknown {
       links: 5,
       quiz: 4,
       flow: 6,
+      flipcards: 4,
+      gauge: 3,
     };
     const max = maxOf[node.type as string];
     if (collection.length > max) node[collectionKey] = collection.slice(0, max);
