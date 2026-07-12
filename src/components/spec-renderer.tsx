@@ -2,10 +2,14 @@
 
 import type { UiNode, UiSpec } from "@/lib/ui-spec";
 import { Carousel } from "./carousel";
+import { SpecReveal } from "./spec-reveal";
 import { Accordion } from "./genui/accordion";
 import { Actions } from "./genui/actions";
 import { CodeBlock } from "./genui/code-block";
 import { Comparison } from "./genui/comparison";
+import { ConceptCard } from "./genui/concept-card";
+import { ConceptMap } from "./genui/concept-map";
+import { Diagram } from "./genui/diagram";
 import { GenChart } from "./genui/gen-chart";
 import { GenForm } from "./genui/gen-form";
 import { Callout, Chips, DataTable, Links, Progress } from "./genui/extras";
@@ -54,6 +58,9 @@ const SLIDE_TYPES = new Set<UiNode["type"]>([
   "flow",
   "flipcards",
   "gauge",
+  "concept",
+  "conceptmap",
+  "diagram",
 ]);
 
 /**
@@ -81,8 +88,13 @@ export function SpecRenderer({ spec }: { spec: UiSpec }) {
   }
 
   // Slides carry no stagger: all but the first are offscreen at mount, and a
-  // delayed entrance would greet an early swipe with a blank view.
-  const slideNodes = slides.map((node, i) => <SpecNode key={i} node={node} index={0} />);
+  // delayed entrance would greet an early swipe with a blank view. Every
+  // substantial block wears the SpecReveal wrapper — the open hood (CH-001).
+  const slideNodes = slides.map((node, i) => (
+    <SpecReveal key={i} node={node}>
+      <SpecNode node={node} index={0} />
+    </SpecReveal>
+  ));
 
   return (
     <div className="space-y-3">
@@ -91,7 +103,9 @@ export function SpecRenderer({ spec }: { spec: UiSpec }) {
       ))}
       {slides.length >= 2 ? <Carousel>{slideNodes}</Carousel> : slideNodes}
       {garnish.map((node, i) => (
-        <SpecNode key={`garnish-${i}`} node={node} index={i} />
+        <SpecReveal key={`garnish-${i}`} node={node}>
+          <SpecNode node={node} index={i} />
+        </SpecReveal>
       ))}
       {actions && <SpecNode node={actions} index={0} />}
     </div>
@@ -198,6 +212,22 @@ function SpecNode({ node, index }: { node: UiNode; index: number }) {
 
     case "gauge":
       return <Gauge items={node.items} />;
+
+    case "concept":
+      return (
+        <ConceptCard
+          title={node.title}
+          tagline={node.tagline}
+          points={node.points}
+          accent={node.accent}
+        />
+      );
+
+    case "conceptmap":
+      return <ConceptMap center={node.center} branches={node.branches} />;
+
+    case "diagram":
+      return <Diagram title={node.title} nodes={node.nodes} edges={node.edges} />;
 
     case "card":
       return (

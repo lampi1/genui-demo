@@ -1,20 +1,12 @@
 import {
   convertToModelMessages,
-  hasToolCall,
   smoothStream,
   stepCountIs,
   streamText,
   tool,
   type UIMessage,
 } from "ai";
-import {
-  comparisonInput,
-  conceptInput,
-  contactInput,
-  formInput,
-  renderUiInput,
-  timelineInput,
-} from "@/lib/genui-tools";
+import { contactInput, renderUiInput } from "@/lib/genui-tools";
 import {
   buildChatModel,
   groqProviderOptions,
@@ -99,9 +91,7 @@ export async function POST(req: Request) {
     // components' entrance animations. Tool-call parts pass through untouched.
     experimental_transform: smoothStream({ delayInMs: 15 }),
     // Schema-rejected tool inputs consume a step each before the retry lands.
-    // A form is terminal: the next move belongs to the visitor, so generation
-    // stops there instead of piling up repeated forms.
-    stopWhen: [stepCountIs(5), hasToolCall("show_form")],
+    stopWhen: [stepCountIs(5)],
     // The demo's contract: every answer opens with generated UI. Forcing a
     // tool call on the first step stops smaller models from narrating the
     // interface as markdown; later steps stay free for the closing sentence.
@@ -112,35 +102,6 @@ export async function POST(req: Request) {
       ...(groqProviderOptions() ? { groq: groqProviderOptions()! } : {}),
     },
     tools: {
-      show_concept: tool({
-        description:
-          "Present ONE concept as a polished card: title, optional tagline, punchy points. " +
-          "NOT for multiple alternatives (show_comparison), sequences (show_timeline), " +
-          "or myth-vs-reality / term-vs-definition reveals (render_ui flipcards). " +
-          "NEVER use it to describe an interface you could render instead.",
-        inputSchema: conceptInput,
-        execute: echo,
-      }),
-      show_comparison: tool({
-        description:
-          "Compare 2-3 alternatives side by side. NOT for a single concept or for sequences.",
-        inputSchema: comparisonInput,
-        execute: echo,
-      }),
-      show_timeline: tool({
-        description:
-          "Show an ordered sequence: steps, evolution, history. NOT for unordered points — that's show_concept.",
-        inputSchema: timelineInput,
-        execute: echo,
-      }),
-      show_form: tool({
-        description:
-          "Present a short interactive form (1-5 fields: radio pills, select, text, textarea) ONLY when the visitor's personal context would change your answer " +
-          "(e.g. 'which approach fits MY project?'). NEVER use it to explain, compare or present content — that's render_ui/tabs/comparison territory. " +
-          "Their answers arrive as their next message — tailor your following generation to them.",
-        inputSchema: formInput,
-        execute: echo,
-      }),
       show_contact: tool({
         description:
           "Show the contact card of the page's author. ONLY when the visitor asks who made this page or how to reach them.",
@@ -149,7 +110,10 @@ export async function POST(req: Request) {
       }),
       render_ui: tool({
         description:
-          "Freely compose a small custom interface from allow-listed blocks: stack, card, text, list, comparison, timeline, " +
+          "THE engine: compose every answer as a small custom interface from allow-listed blocks: stack, card, text, list, comparison, timeline, " +
+          "concept ({title, tagline?, points:string[], accent?} — ONE big flip card presenting a single concept), " +
+          "conceptmap ({center, branches:[{label, children?:string[]}] 2-6} — a mind map fanning out from one central idea), " +
+          "diagram ({title?, nodes:[{id,label}] 2-8, edges:[{from,to,label?}]} — boxes and arrows, layout computed automatically), " +
           "accordion, tabs, stats (count up), chart (bar|donut|line via kind + data:[{label,value:number}]), progress (0-100 meters), " +
           "callout (info|tip|warning), chips (tag strings), table (columns+rows), links (official URLs from knowledge only), " +
           "actions (tappable follow-ups: buttons:[{label,message?}]), form, " +
@@ -159,7 +123,7 @@ export async function POST(req: Request) {
           "flipcards (cards:[{front, back}] 2-4 — tap-to-flip cards: term→definition, myth→reality; " +
           "ALWAYS this block when the visitor mentions flip cards, myths or reveals), " +
           "gauge (items:[{label, value:0-100, suffix?}] 1-3 — radial dials that sweep to their score). " +
-          "Use when no curated tool fits. VARY the blocks: never the same layout twice in a row, don't default to accordion, mix kinds in one composition. " +
+          "Every answer goes through this tool (show_contact excepted). VARY the blocks: never the same layout twice in a row, don't default to accordion, mix kinds in one composition. " +
           "Shapes: text has {content, variant?} — never title; list items are plain strings; " +
           "{title, description} sequences are a timeline; {title, content} sequences are an accordion; " +
           "tabs has tabs:[{label, content}]; stats has items:[{value:number, label, prefix?, suffix?}]; " +

@@ -1,20 +1,10 @@
 "use client";
 
 import type { UIMessagePart, UIDataTypes, UITools } from "ai";
-import type {
-  ComparisonInput,
-  ConceptInput,
-  FormInput,
-  TimelineInput,
-} from "@/lib/genui-tools";
-import { GenForm } from "@/components/genui/gen-form";
-import { splitSpecFences, stripComponentNarration } from "@/lib/spec-in-text";
+import { splitSpecFences } from "@/lib/spec-in-text";
 import { parseUiSpec } from "@/lib/ui-spec";
 import { CodeBlock } from "@/components/genui/code-block";
-import { Comparison } from "@/components/genui/comparison";
-import { ConceptCard } from "@/components/genui/concept-card";
 import { ContactCard } from "@/components/genui/contact-card";
-import { Timeline } from "@/components/genui/timeline";
 import { GeneratedBlock } from "@/components/generated-block";
 import { SpecRenderer } from "@/components/spec-renderer";
 import { RetryNotice } from "./retry-notice";
@@ -38,16 +28,17 @@ export function PartRenderer({
   hasRenderedTool?: boolean;
 }) {
   if (part.type === "text") {
-    const raw = hasRenderedTool ? stripComponentNarration(part.text) : part.text;
+    // Once a component has rendered, text parts add nothing the UI doesn't
+    // already say — models re-narrate the spec as JSON after the tool call
+    // (observed live 2026-07-12: the same answer echoed as a JSON block).
+    // Nothing survives: not prose, not fenced specs, not code.
+    if (hasRenderedTool) return null;
+    const raw = part.text;
     if (!raw.trim()) return null;
     const streaming = part.state === "streaming";
     // Models sometimes narrate the spec as JSON in text instead of calling
     // render_ui — salvage it into real UI instead of showing raw JSON.
-    // Once a component has rendered, plain prose adds nothing the UI doesn't
-    // already say: only salvaged UI and code survive from the text.
-    const segments = splitSpecFences(raw, streaming).filter(
-      (segment) => !(hasRenderedTool && segment.kind === "text"),
-    );
+    const segments = splitSpecFences(raw, streaming);
     return (
       <>
         {segments.map((segment, i) => {
@@ -97,34 +88,7 @@ export function PartRenderer({
     return isLastPart ? (
       <RetryNotice message="This layout dissolved mid-generation." />
     ) : null;
-  // input-available | output-available: the input already carries everything.
-  const input = toolPart.input;
-
   switch (part.type) {
-    case "tool-show_concept":
-      return (
-        <GeneratedBlock>
-          <ConceptCard {...(input as ConceptInput)} />
-        </GeneratedBlock>
-      );
-    case "tool-show_comparison":
-      return (
-        <GeneratedBlock>
-          <Comparison {...(input as ComparisonInput)} />
-        </GeneratedBlock>
-      );
-    case "tool-show_timeline":
-      return (
-        <GeneratedBlock>
-          <Timeline {...(input as TimelineInput)} />
-        </GeneratedBlock>
-      );
-    case "tool-show_form":
-      return (
-        <GeneratedBlock>
-          <GenForm {...(input as FormInput)} />
-        </GeneratedBlock>
-      );
     case "tool-show_contact":
       return (
         <GeneratedBlock>

@@ -1,8 +1,9 @@
 # genui
 
-A single-page demo that explains generative UI by being generative UI: visitors chat,
-the model renders curated components (tool-calling) or composes free layouts through a
-declarative JSON renderer (A2UI-style).
+A single-page demo for learning generative UI by talking to one: every answer is
+composed through a declarative JSON renderer (A2UI-style single engine, ADR-0002);
+any block reveals its spec on demand. The contact card is the one hand-crafted
+exception.
 
 Package manager: npm.
 
@@ -17,7 +18,8 @@ Package manager: npm.
 ## Pointers
 
 - Domain glossary: `CONTEXT.md` — use these exact names.
-- Stack decision and constraints (cost ceiling 5 EUR/month): `docs/adr/0001-stack.md`.
+- Stack decision and constraints (cost ceiling 5 EUR/month): `docs/adr/0001-stack.md`;
+  single-engine decision: `docs/adr/0002-single-declarative-engine.md`.
 - App code: `src/app/` (App Router), shared logic: `src/lib/`.
 
 <!-- BEGIN:nextjs-agent-rules -->

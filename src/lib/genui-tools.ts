@@ -1,8 +1,10 @@
 import { z } from "zod";
 
 /**
- * Input schemas of the generative-UI tools — shared between the chat route
- * (tool definitions) and the client (typed rendering of tool parts).
+ * Since CH-001 (single declarative engine) only `contactInput` and
+ * `renderUiInput` are tool inputs. The other schemas survive as the typed
+ * props of the hand-crafted React components, which now render SPEC NODES
+ * of the same shape (concept, comparison, timeline, form).
  */
 
 export const conceptInput = z.object({
@@ -91,6 +93,21 @@ const looseNode = z.looseObject({
     .optional()
     .describe("REQUIRED for list/timeline/accordion/stats/gauge"),
   cards: z.array(z.unknown()).optional().describe("flipcards only: {front, back}"),
+  points: z.array(z.unknown()).optional().describe("concept only: short strings"),
+  tagline: z.string().optional().describe("concept only"),
+  center: z.string().optional().describe("conceptmap only: the central concept"),
+  branches: z
+    .array(z.unknown())
+    .optional()
+    .describe("conceptmap only: {label, children?: string[]}"),
+  nodes: z
+    .array(z.unknown())
+    .optional()
+    .describe("diagram only: {id, label}"),
+  edges: z
+    .array(z.unknown())
+    .optional()
+    .describe("diagram only: {from, to, label?} — ids from nodes"),
   tabs: z.array(z.unknown()).optional(),
   question: z.string().optional().describe("quiz only"),
   options: z.array(z.unknown()).optional().describe("quiz only: {label, correct?, reaction?}"),

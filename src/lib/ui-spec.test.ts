@@ -614,6 +614,97 @@ describe("parseUiSpec", () => {
     });
   });
 
+  it("accepts a concept node and flattens object points", () => {
+    const spec = parseUiSpec({
+      children: [
+        {
+          type: "concept",
+          title: "Generative UI",
+          tagline: "The interface arrives after the question.",
+          points: ["Composed on the spot", { text: "Validated before pixels" }],
+          accent: "none",
+        },
+      ],
+    });
+    expect(spec?.children[0]).toEqual({
+      type: "concept",
+      title: "Generative UI",
+      tagline: "The interface arrives after the question.",
+      points: ["Composed on the spot", "Validated before pixels"],
+    });
+  });
+
+  it("accepts a conceptmap, salvaging string branches and center aliases", () => {
+    const spec = parseUiSpec({
+      children: [
+        {
+          type: "conceptmap",
+          title: "Generative UI",
+          branches: [
+            { label: "Approaches", children: ["tool-calling", "spec", "raw HTML"] },
+            "Standards",
+            { name: "Safety", items: ["allow-list", { label: "validation" }] },
+          ],
+        },
+      ],
+    });
+    expect(spec?.children[0]).toEqual({
+      type: "conceptmap",
+      center: "Generative UI",
+      branches: [
+        { label: "Approaches", children: ["tool-calling", "spec", "raw HTML"] },
+        { label: "Standards" },
+        { label: "Safety", children: ["allow-list", "validation"] },
+      ],
+    });
+  });
+
+  it("accepts a diagram, dropping edges to unknown ids and defaulting missing ids", () => {
+    const spec = parseUiSpec({
+      children: [
+        {
+          type: "diagram",
+          nodes: [{ id: "agent", label: "Agent" }, { label: "Frontend" }, "MCP"],
+          edges: [
+            { from: "agent", to: "Frontend", label: "streams" },
+            { from: "agent", to: "ghost" },
+            { source: "agent", target: "MCP" },
+          ],
+        },
+      ],
+    });
+    expect(spec?.children[0]).toMatchObject({
+      type: "diagram",
+      nodes: [
+        { id: "agent", label: "Agent" },
+        { id: "Frontend", label: "Frontend" },
+        { id: "MCP", label: "MCP" },
+      ],
+      edges: [
+        { from: "agent", to: "Frontend", label: "streams" },
+        { from: "agent", to: "MCP" },
+      ],
+    });
+  });
+
+  it("chains diagram nodes when no edge survives", () => {
+    const spec = parseUiSpec({
+      children: [
+        {
+          type: "diagram",
+          nodes: ["A", "B", "C"],
+          edges: [{ from: "x", to: "y" }],
+        },
+      ],
+    });
+    expect(spec?.children[0]).toMatchObject({
+      edges: [
+        { from: "A", to: "B" },
+        { from: "B", to: "C" },
+      ],
+    });
+  });
+
   it("keeps only allow-listed link domains", () => {
     const spec = parseUiSpec({
       children: [

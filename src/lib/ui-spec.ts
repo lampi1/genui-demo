@@ -31,6 +31,9 @@ export const ALLOWED_COMPONENTS = [
   "flow",
   "flipcards",
   "gauge",
+  "concept",
+  "conceptmap",
+  "diagram",
 ] as const;
 
 /** Domains a model-emitted link may point to — anything else is dropped. */
@@ -328,6 +331,62 @@ const gaugeNode = z.object({
     .describe("Radial dials that sweep to their value — scores, ratings, maturity."),
 });
 
+const conceptNode = z.object({
+  type: z.literal("concept"),
+  title: z.string().min(1),
+  tagline: z.string().optional().describe("One striking line under the title"),
+  points: z
+    .array(z.string())
+    .min(1)
+    .max(6)
+    .describe("Short, punchy statements revealed on the flip side"),
+  accent: z.enum(["violet", "cyan", "rose"]).optional(),
+});
+
+const conceptmapNode = z.object({
+  type: z.literal("conceptmap"),
+  center: z.string().min(1).describe("The central concept"),
+  branches: z
+    .array(
+      z.object({
+        label: z.string().min(1),
+        children: z
+          .array(z.string())
+          .max(4)
+          .optional()
+          .describe("Leaf ideas under this branch — 2-4 words each, never sentences"),
+      }),
+    )
+    .min(2)
+    .max(6)
+    .describe("A mind map: one center, branches fanning out with optional leaves."),
+});
+
+const diagramNode = z.object({
+  type: z.literal("diagram"),
+  title: z.string().optional(),
+  nodes: z
+    .array(
+      z.object({
+        id: z.string().min(1).describe("Short unique key, referenced by edges"),
+        label: z.string().min(1),
+      }),
+    )
+    .min(2)
+    .max(8),
+  edges: z
+    .array(
+      z.object({
+        from: z.string().min(1).describe("id of the source node"),
+        to: z.string().min(1).describe("id of the target node"),
+        label: z.string().optional().describe("Short verb on the arrow"),
+      }),
+    )
+    .min(1)
+    .max(12)
+    .describe("Directed connections; layout is computed automatically."),
+});
+
 const leafNode = z.discriminatedUnion("type", [
   textNode,
   listNode,
@@ -349,6 +408,9 @@ const leafNode = z.discriminatedUnion("type", [
   flowNode,
   flipcardsNode,
   gaugeNode,
+  conceptNode,
+  conceptmapNode,
+  diagramNode,
 ]);
 
 // --- Containers, unrolled to a bounded depth ------------------------------
@@ -431,23 +493,29 @@ export function repairUiSpecValue(value: unknown): unknown {
     }
   }
 
-  // A missing type is inferable from the shape (models omit it for "obvious" text).
+  // A missing type is inferable from the shape (models omit it for "obvious"
+  // text). Distinctive collections first — the text fallback wins last, or a
+  // concept's title would demote the whole node to a line of prose.
   if (typeof node.type !== "string") {
-    if (
-      typeof node.content === "string" ||
-      typeof node.text === "string" ||
-      typeof node.title === "string"
-    ) {
-      node.type = "text";
-    } else if (Array.isArray(node.tabs)) node.type = "tabs";
+    if (Array.isArray(node.tabs)) node.type = "tabs";
     else if (Array.isArray(node.buttons)) node.type = "actions";
     else if (Array.isArray(node.rows)) node.type = "table";
     else if (Array.isArray(node.data)) node.type = "chart";
     else if (Array.isArray(node.steps)) node.type = "flow";
     else if (Array.isArray(node.cards)) node.type = "flipcards";
+    else if (Array.isArray(node.branches)) node.type = "conceptmap";
+    else if (Array.isArray(node.nodes) && Array.isArray(node.edges)) node.type = "diagram";
+    else if (Array.isArray(node.points)) node.type = "concept";
     else if (Array.isArray(node.items)) node.type = "list";
     else if (Array.isArray(node.columns)) node.type = "comparison";
     else if (Array.isArray(node.children)) node.type = "stack";
+    else if (
+      typeof node.content === "string" ||
+      typeof node.text === "string" ||
+      typeof node.title === "string"
+    ) {
+      node.type = "text";
+    }
   }
 
   // Collection aliases: the model parks the entries under the wrong key
@@ -470,6 +538,9 @@ export function repairUiSpecValue(value: unknown): unknown {
     flow: "steps",
     flipcards: "cards",
     gauge: "items",
+    concept: "points",
+    conceptmap: "branches",
+    diagram: "nodes",
   };
   const aliasTarget = COLLECTION_KEY[node.type as string];
   if (aliasTarget && !Array.isArray(node[aliasTarget])) {
@@ -487,6 +558,9 @@ export function repairUiSpecValue(value: unknown): unknown {
       "options",
       "steps",
       "cards",
+      "points",
+      "branches",
+      "nodes",
     ]
       .filter((key) => key !== aliasTarget)
       .find((key) => Array.isArray(node[key]));
@@ -509,18 +583,33 @@ export function repairUiSpecValue(value: unknown): unknown {
   }
 
   if (node.type === "form") {
+    // Fields under a near-synonym key ('questions' observed live 2026-07-12).
+    if (!Array.isArray(node.fields) && Array.isArray(node.questions)) {
+      node.fields = node.questions;
+      delete node.questions;
+    }
     if (Array.isArray(node.fields)) {
-      node.fields = node.fields.map((field) => {
-        if (typeof field !== "object" || field === null) return field;
-        const entry = { ...(field as Record<string, unknown>) };
-        if (typeof entry.label !== "string" && typeof entry.title === "string") {
-          entry.label = entry.title;
-          delete entry.title;
-        }
-        const kinds = ["text", "textarea", "select", "radio"];
-        if ("type" in entry && !kinds.includes(entry.type as string)) delete entry.type;
-        return entry;
-      });
+      node.fields = node.fields
+        .map((field) => {
+          // A bare string is a label-only text field — salvage, don't sink.
+          if (typeof field === "string") {
+            return field.trim() ? { label: field } : null;
+          }
+          if (typeof field !== "object" || field === null) return null;
+          const entry = { ...(field as Record<string, unknown>) };
+          if (typeof entry.label !== "string") {
+            const alias = [entry.title, entry.question, entry.name, entry.text].find(
+              (candidate) => typeof candidate === "string" && candidate.trim() !== "",
+            );
+            if (alias) entry.label = alias;
+          }
+          const kinds = ["text", "textarea", "select", "radio"];
+          if ("type" in entry && !kinds.includes(entry.type as string)) delete entry.type;
+          return typeof entry.label === "string" && entry.label.trim() !== ""
+            ? entry
+            : null;
+        })
+        .filter((field) => field !== null);
     }
   }
 
@@ -634,6 +723,131 @@ export function repairUiSpecValue(value: unknown): unknown {
           : null;
       })
       .filter((card) => card !== null);
+  }
+
+  // The card accent enum has "none"; the concept card's does not — drop it.
+  if (node.type === "concept" && node.accent === "none") delete node.accent;
+
+  // Concept points arrive as strings or as {title/text} objects — flatten.
+  if (node.type === "concept" && Array.isArray(node.points)) {
+    node.points = node.points
+      .map((point) => {
+        if (typeof point === "string") return point.trim() ? point : null;
+        if (typeof point !== "object" || point === null) return null;
+        const entry = point as Record<string, unknown>;
+        const text = [entry.text, entry.title, entry.content, entry.label]
+          .filter((part) => typeof part === "string" && part.trim() !== "")
+          .join(" — ");
+        return text || null;
+      })
+      .filter((point) => point !== null);
+  }
+
+  // Concept map: string branches become labels; leaves under near-synonyms.
+  if (node.type === "conceptmap" && Array.isArray(node.branches)) {
+    node.branches = node.branches
+      .map((branch) => {
+        if (typeof branch === "string") {
+          return branch.trim() ? { label: branch } : null;
+        }
+        if (typeof branch !== "object" || branch === null) return null;
+        const entry = { ...(branch as Record<string, unknown>) };
+        if (typeof entry.label !== "string" || entry.label.trim() === "") {
+          const alias = [entry.title, entry.text, entry.name].find(
+            (candidate) => typeof candidate === "string" && candidate.trim() !== "",
+          );
+          if (alias) entry.label = alias;
+        }
+        const leaves = [entry.children, entry.items, entry.leaves].find(Array.isArray);
+        const children = (leaves ?? [])
+          .map((leaf: unknown) => {
+            if (typeof leaf === "string") return leaf;
+            if (typeof leaf === "object" && leaf !== null) {
+              const inner = leaf as Record<string, unknown>;
+              return [inner.label, inner.title, inner.text].find(
+                (candidate) => typeof candidate === "string",
+              );
+            }
+            return undefined;
+          })
+          .filter((leaf: unknown): leaf is string => typeof leaf === "string")
+          .slice(0, 4);
+        if (typeof entry.label !== "string" || entry.label.trim() === "") return null;
+        return children.length > 0
+          ? { label: entry.label, children }
+          : { label: entry.label };
+      })
+      .filter((branch) => branch !== null);
+    if (typeof node.center !== "string" || node.center.trim() === "") {
+      const alias = [node.title, node.label, node.topic].find(
+        (candidate) => typeof candidate === "string" && candidate.trim() !== "",
+      );
+      if (alias) node.center = alias;
+      else return null; // a map without a center has nothing to fan out from
+    }
+  }
+
+  // Diagram: string nodes become {id,label}; ids default to labels; edges
+  // pointing at unknown ids are dropped; no surviving edge → chain the nodes.
+  if (node.type === "diagram" && Array.isArray(node.nodes)) {
+    const nodes = node.nodes
+      .map((box) => {
+        if (typeof box === "string") {
+          return box.trim() ? { id: box, label: box } : null;
+        }
+        if (typeof box !== "object" || box === null) return null;
+        const entry = { ...(box as Record<string, unknown>) };
+        if (typeof entry.label !== "string" || entry.label.trim() === "") {
+          const alias = [entry.title, entry.text, entry.name, entry.id].find(
+            (candidate) => typeof candidate === "string" && candidate.trim() !== "",
+          );
+          if (alias) entry.label = alias;
+        }
+        if (typeof entry.id !== "string" || entry.id.trim() === "") {
+          entry.id = entry.label;
+        }
+        return typeof entry.label === "string" && entry.label.trim() !== ""
+          ? { id: entry.id as string, label: entry.label }
+          : null;
+      })
+      .filter((box) => box !== null);
+    // Duplicate ids would make edges ambiguous — keep the first of each.
+    const seen = new Set<string>();
+    node.nodes = nodes.filter((box) => {
+      if (seen.has(box.id)) return false;
+      seen.add(box.id);
+      return true;
+    });
+    const ids = new Set((node.nodes as { id: string }[]).map((box) => box.id));
+    const edges = (Array.isArray(node.edges) ? node.edges : [])
+      .map((edge) => {
+        if (typeof edge !== "object" || edge === null) return null;
+        const entry = { ...(edge as Record<string, unknown>) };
+        if (typeof entry.from !== "string" && typeof entry.source === "string") {
+          entry.from = entry.source;
+        }
+        if (typeof entry.to !== "string" && typeof entry.target === "string") {
+          entry.to = entry.target;
+        }
+        return typeof entry.from === "string" &&
+          typeof entry.to === "string" &&
+          ids.has(entry.from) &&
+          ids.has(entry.to) &&
+          entry.from !== entry.to
+          ? entry
+          : null;
+      })
+      .filter((edge) => edge !== null)
+      .slice(0, 12);
+    node.edges =
+      edges.length > 0
+        ? edges
+        : (node.nodes as { id: string }[])
+            .slice(0, -1)
+            .map((box, i) => ({
+              from: box.id,
+              to: (node.nodes as { id: string }[])[i + 1].id,
+            }));
   }
 
   if (node.type === "tabs" && Array.isArray(node.tabs)) {
@@ -807,6 +1021,9 @@ export function repairUiSpecValue(value: unknown): unknown {
     flow: "steps",
     flipcards: "cards",
     gauge: "items",
+    concept: "points",
+    conceptmap: "branches",
+    diagram: "nodes",
   };
   const collectionKey = collectionOf[node.type as string];
   if (collectionKey) {
@@ -822,7 +1039,9 @@ export function repairUiSpecValue(value: unknown): unknown {
     // lone entry into a text line rather than fail.
     if (
       collection.length === 1 &&
-      ["accordion", "tabs", "timeline", "flow", "flipcards"].includes(node.type as string)
+      ["accordion", "tabs", "timeline", "flow", "flipcards", "conceptmap", "diagram"].includes(
+        node.type as string,
+      )
     ) {
       const only = collection[0] as Record<string, unknown>;
       const label = [only?.title, only?.label, only?.front].find(
@@ -853,6 +1072,9 @@ export function repairUiSpecValue(value: unknown): unknown {
       flow: 6,
       flipcards: 4,
       gauge: 3,
+      concept: 6,
+      conceptmap: 6,
+      diagram: 8,
     };
     const max = maxOf[node.type as string];
     if (collection.length > max) node[collectionKey] = collection.slice(0, max);

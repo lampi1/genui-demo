@@ -177,14 +177,15 @@ export function Chat() {
               className="enter text-balance text-lg text-muted sm:text-xl"
               style={{ "--stagger": 1 } as React.CSSProperties}
             >
-              It generates one as we talk.
+              It generates one as we talk — that&apos;s the lesson.
             </p>
             <p
-              className="enter text-balance text-sm text-muted/70"
+              className="enter mx-auto max-w-md text-balance text-sm text-muted/70"
               style={{ "--stagger": 2 } as React.CSSProperties}
             >
-              Ask anything about generative UI — the answer arrives as an
-              interface you can touch, never as a wall of text.
+              A hands-on demo for learning <strong className="font-medium text-foreground/80">generative UI</strong>:
+              ask anything about it, and the answer is composed on the spot as an
+              interface you can touch — and whose JSON spec you can inspect.
             </p>
           </div>
           <div className="flex flex-wrap justify-center gap-3">
