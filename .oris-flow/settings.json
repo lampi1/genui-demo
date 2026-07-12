@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "orisFlow": {
+    "responseStyle": "standard",
+    "artifactLanguage": "en",
+    "tasksRoot": ".oris-flow/tasks",
+    "versionControl": "commit"
+  }
+}

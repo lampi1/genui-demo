@@ -1,6 +1,6 @@
 # ADR-0001: Stack — Next.js + Vercel AI SDK, hybrid generative UI
 
-Date: 2026-07-10 · Status: accepted
+Date: 2026-07-10 · Status: accepted · Approach point superseded by ADR-0002 (single declarative engine, 2026-07-12)
 
 ## Decision
 
