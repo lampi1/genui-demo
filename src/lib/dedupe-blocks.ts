@@ -13,6 +13,14 @@ type MessageParts = UIMessage["parts"];
 export function dedupeGeneratedBlocks(parts: MessageParts): MessageParts {
   const isDone = (part: MessageParts[number]) =>
     (part as { state?: string }).state === "output-available";
+
+  // The contact card is the ENTIRE answer (owner's rule): once it has
+  // completed, nothing else in the message earns pixels — no text, no
+  // follow-up actions the model tacked on despite the prompt.
+  const contactCards = parts.filter(
+    (part) => part.type === "tool-show_contact" && isDone(part),
+  );
+  if (contactCards.length > 0) return contactCards.slice(-1);
   const isActionsOnly = (part: MessageParts[number]) => {
     const children = (part as { output?: { children?: { type?: string }[] } })
       .output?.children;

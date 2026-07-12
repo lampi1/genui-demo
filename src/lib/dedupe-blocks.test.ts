@@ -38,12 +38,36 @@ describe("dedupeGeneratedBlocks", () => {
     expect(dedupeGeneratedBlocks(parts)).toHaveLength(2);
   });
 
-  it("keeps text and the contact tool untouched", () => {
+  it("keeps text alongside compositions when no contact card rendered", () => {
     const parts: Parts = [
       { type: "text", text: "framing line" } as Parts[number],
-      { type: "tool-show_contact", state: "output-available" } as unknown as Parts[number],
       composition([{ type: "stats" }]),
     ];
-    expect(dedupeGeneratedBlocks(parts)).toHaveLength(3);
+    expect(dedupeGeneratedBlocks(parts)).toHaveLength(2);
+  });
+
+  it("makes a completed contact card the ENTIRE answer", () => {
+    // Owner's rule (2026-07-12): who-made-this shows the card and nothing else.
+    const contact = {
+      type: "tool-show_contact",
+      state: "output-available",
+    } as unknown as Parts[number];
+    const parts: Parts = [
+      { type: "text", text: "Here is the maker" } as Parts[number],
+      contact,
+      composition([{ type: "actions" }]),
+    ];
+    expect(dedupeGeneratedBlocks(parts)).toEqual([contact]);
+  });
+
+  it("leaves the message alone while the contact card is still streaming", () => {
+    const parts: Parts = [
+      {
+        type: "tool-show_contact",
+        state: "input-streaming",
+      } as unknown as Parts[number],
+      { type: "text", text: "framing" } as Parts[number],
+    ];
+    expect(dedupeGeneratedBlocks(parts)).toHaveLength(2);
   });
 });

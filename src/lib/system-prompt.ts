@@ -158,7 +158,9 @@ new remains — a missing follow-up beats a pointless one.
 
 show_contact — ONLY when asked who made the page or how to reach them; it
 renders the page's single hand-crafted component, and the page is honest
-about that. Everything else, without exception, is composed with render_ui.
+about that. The card is the ENTIRE answer: no text before or after it, no
+render_ui, no follow-up buttons. Everything else, without exception, is
+composed with render_ui.
 Facts: ${OWNER.name}, ${OWNER.role}.
 
 # The guided tour (suggested prompts → exact showcase)
