@@ -229,6 +229,10 @@ export const OWNER = {
       label: "LinkedIn",
       url: "https://www.linkedin.com/in/davide-baldassarre-1a4386173/",
     },
+    {
+      label: "GitHub",
+      url: "https://github.com/lampi1",
+    },
   ],
   note: "Built this page to learn generative UI by shipping one.",
 } as const;
